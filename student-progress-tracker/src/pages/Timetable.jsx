@@ -2,22 +2,61 @@ import React, { useState, useEffect } from 'react';
 import LeftPanels from '../components/Timetable/LeftPanels';
 import RightPanels from '../components/Timetable/RightPanels';
 import Timeline from '../components/Timetable/Timeline';
+import TaskModal from '../components/Timetable/TaskModal';
+
+import useTimetable from '../hooks/useTimetable';
+import { requestNotificationPermission } from '../utils/notifications';
 
 export default function Timetable() {
+  const {
+    tasks,
+    currentTime,
+    currentTask,
+    previousTask,
+    nextTask,
+    focusPulse,
+    dayBalance,
+    dayProgress,
+    actions
+  } = useTimetable();
+
   const [hasTimetable, setHasTimetable] = useState(false);
   const [viewMode, setViewMode] = useState('timeline'); // 'timeline' | 'calendar'
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalTaskData, setModalTaskData] = useState(null);
+
+  const openModal = (task = null) => {
+    setModalTaskData(task);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveTask = (taskData) => {
+    if (taskData.id) {
+      actions.updateTask(taskData.id, taskData);
+    } else {
+      actions.addTask(taskData);
+    }
+    setIsModalOpen(false);
+  };
+
+  const handleDeleteTask = (id) => {
+    actions.deleteTask(id);
+    setIsModalOpen(false);
+  };
 
   // Load from local storage for persistence across reloads
   useEffect(() => {
     const saved = localStorage.getItem('spt_has_timetable');
     if (saved === 'true') {
       setHasTimetable(true);
+      requestNotificationPermission(); // Ask for permissions if they have a timetable
     }
   }, []);
 
   const handleAddTimetable = () => {
     setHasTimetable(true);
     localStorage.setItem('spt_has_timetable', 'true');
+    requestNotificationPermission();
   };
 
   return (
@@ -53,7 +92,13 @@ export default function Timetable() {
           </div>
 
           {/* AI Optimize Button */}
-          <button className='flex items-center gap-2 px-5 py-2.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold tracking-widest hover:bg-cyan-500/20 transition-all shadow-[0_0_20px_rgba(34,211,238,0.15)] hover:shadow-[0_0_30px_rgba(34,211,238,0.3)]'>
+          <button 
+            onClick={() => {
+              const success = actions.optimizeSchedule();
+              if(success) alert('Schedule optimized by AI!');
+            }}
+            className='flex items-center gap-2 px-5 py-2.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold tracking-widest hover:bg-cyan-500/20 transition-all shadow-[0_0_20px_rgba(34,211,238,0.15)] hover:shadow-[0_0_30px_rgba(34,211,238,0.3)]'
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
             AI Optimize
             <span className='w-5 h-5 rounded-full bg-cyan-400 text-[#060606] flex items-center justify-center text-[10px] ml-1 shadow-[0_0_10px_rgba(34,211,238,0.8)]'>3</span>
@@ -67,14 +112,27 @@ export default function Timetable() {
         
         {/* Left Sidebar (Calendar, Pulse, Mission) */}
         <div className='lg:col-span-3 flex flex-col'>
-          <LeftPanels hasTimetable={hasTimetable} onAddTimetable={handleAddTimetable} />
+          <LeftPanels 
+            hasTimetable={hasTimetable} 
+            onAddTimetable={handleAddTimetable} 
+            focusPulse={focusPulse}
+            tasks={tasks}
+          />
         </div>
 
         {/* Center Hero Timeline */}
         <div className='lg:col-span-6 relative min-h-[600px]'>
            {/* Ambient background glow for center area */}
            <div className='absolute inset-0 bg-gradient-to-b from-cyan-900/5 via-transparent to-transparent pointer-events-none rounded-3xl'></div>
-           <Timeline hasTimetable={hasTimetable} setHasTimetable={setHasTimetable} />
+           <Timeline 
+             hasTimetable={hasTimetable} 
+             setHasTimetable={setHasTimetable} 
+             tasks={tasks}
+             currentTime={currentTime}
+             currentTask={currentTask}
+             actions={actions}
+             openModal={openModal}
+           />
            
            {/* Bottom Encouragement Text */}
            <div className='absolute -bottom-16 left-0 right-0 flex justify-between items-center text-[11px] font-medium tracking-widest text-slate-500 border-t border-white/[0.05] pt-6'>
@@ -89,7 +147,15 @@ export default function Timetable() {
 
         {/* Right Sidebar (Clock, AI Insight, Balance, Progress) */}
         <div className='lg:col-span-3 flex flex-col'>
-          <RightPanels hasTimetable={hasTimetable} />
+          <RightPanels 
+            hasTimetable={hasTimetable} 
+            currentTime={currentTime}
+            dayBalance={dayBalance}
+            nextTask={nextTask}
+            dayProgress={dayProgress}
+            actions={actions}
+            openModal={openModal}
+          />
         </div>
 
       </div>
@@ -116,6 +182,14 @@ export default function Timetable() {
           </div>
         </div>
       )}
+
+      <TaskModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        initialData={modalTaskData}
+        onSave={handleSaveTask}
+        onDelete={handleDeleteTask}
+      />
 
     </div>
   );

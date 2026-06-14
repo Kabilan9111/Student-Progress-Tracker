@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 
 const PRIORITY_COLORS = {
   high: 'text-cyan-400 bg-cyan-400/10 border-cyan-400/30 shadow-[0_0_15px_rgba(34,211,238,0.2)]',
@@ -25,25 +25,37 @@ const ICONS = {
   sleep: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8v9"/></svg>
 };
 
-const TaskCard = ({ task, isLive }) => {
+const TaskCard = ({ task, isLive, currentTime, actions, openModal }) => {
   const [expanded, setExpanded] = useState(false);
   
+  const status = task.completed ? 'completed' : (isLive ? 'live' : 'upcoming');
+  const isCompleted = status === 'completed';
+
+  let progressPercent = 0;
+  if (isLive && task.parsedStart && task.parsedEnd && currentTime) {
+    const totalMs = task.parsedEnd - task.parsedStart;
+    const elapsedMs = currentTime - task.parsedStart;
+    if (totalMs > 0) {
+      progressPercent = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+    }
+  }
+
   return (
     <div 
-      className={`relative w-full rounded-2xl border transition-all duration-500 group flex flex-col justify-center cursor-pointer overflow-hidden ${PRIORITY_COLORS[task.priority]} ${isLive ? 'scale-[1.02] bg-opacity-20 shadow-[0_0_30px_rgba(34,211,238,0.2)] border-cyan-400/50' : 'hover:scale-[1.01] hover:bg-opacity-20'} ${task.status === 'completed' ? 'opacity-60 saturate-50' : ''}`}
+      className={`relative w-full rounded-2xl border transition-all duration-500 group flex flex-col justify-center cursor-pointer overflow-hidden ${PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium} ${isLive ? 'scale-[1.02] bg-opacity-20 shadow-[0_0_30px_rgba(34,211,238,0.2)] border-cyan-400/50' : 'hover:scale-[1.01] hover:bg-opacity-20'} ${isCompleted ? 'opacity-60 saturate-50' : ''}`}
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
       style={{ minHeight: '80px' }}
     >
       <div className="absolute inset-0 bg-gradient-to-r from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
       
-      <div className="px-6 py-4 flex items-center justify-between z-10">
+      <div className="px-6 py-4 flex items-center justify-between z-10" onClick={() => actions.toggleTaskCompletion(task.id)}>
         <div className="flex items-center gap-5">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-inner ${isLive ? 'bg-cyan-500/20 border-cyan-400/30 text-cyan-400' : 'bg-white/5 border-white/10'}`}>
             {ICONS[task.icon] || ICONS.sun}
           </div>
           <div>
-            <h4 className="text-white font-medium text-base tracking-wide flex items-center gap-3">
+            <h4 className={`font-medium text-base tracking-wide flex items-center gap-3 ${isCompleted ? 'text-slate-400 line-through' : 'text-white'}`}>
               {task.title}
             </h4>
             <p className="text-xs text-slate-400 mt-1 font-medium tracking-wider">
@@ -56,8 +68,15 @@ const TaskCard = ({ task, isLive }) => {
           <span className="text-xs font-semibold text-slate-300 tracking-wider w-16 text-right">
             {task.duration}
           </span>
-          <div className="w-16 flex justify-end">
-            {STATUS_ICONS[task.status]}
+          <div className="w-16 flex justify-end items-center gap-2">
+            <button 
+              onClick={(e) => { e.stopPropagation(); openModal(task); }}
+              className={`p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 ${isLive ? 'bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/40' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'}`}
+              title="Edit Task"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            {STATUS_ICONS[status]}
           </div>
         </div>
       </div>
@@ -70,14 +89,14 @@ const TaskCard = ({ task, isLive }) => {
               {task.notes}
             </p>
           )}
-          {isLive && (
+          {isLive && !isCompleted && (
              <div className="flex items-center gap-3 mt-1">
                <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                 <div className="h-full bg-cyan-400 w-[60%] shadow-[0_0_10px_rgba(34,211,238,0.8)] relative">
+                 <div className="h-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)] relative transition-all duration-1000 linear" style={{ width: `${progressPercent}%` }}>
                     <div className="absolute right-0 top-0 bottom-0 w-4 bg-white/50 blur-[2px]"></div>
                  </div>
                </div>
-               <span className="text-[10px] font-bold text-cyan-400 w-8 text-right">60%</span>
+               <span className="text-[10px] font-bold text-cyan-400 w-8 text-right">{Math.round(progressPercent)}%</span>
              </div>
           )}
         </div>
@@ -86,29 +105,17 @@ const TaskCard = ({ task, isLive }) => {
   );
 };
 
-export default function Timeline({ hasTimetable, setHasTimetable }) {
-  const [currentTimePos, setCurrentTimePos] = useState(30); // percentage 0-100
+export default function Timeline({ hasTimetable, setHasTimetable, tasks, currentTime, currentTask, actions, openModal }) {
+  
+  // Calculate vertical position of the glowing orb based on current time
+  let currentTimePos = 0;
+  if (currentTime) {
+    let elapsedMins = (currentTime.getHours() * 60 + currentTime.getMinutes()) - (4 * 60);
+    if (elapsedMins < 0) elapsedMins += 24 * 60;
+    currentTimePos = Math.min(100, Math.max(0, (elapsedMins / (24 * 60)) * 100));
+  }
 
-  // Animate the line down slowly
-  useEffect(() => {
-    if(!hasTimetable) return;
-    const interval = setInterval(() => {
-      setCurrentTimePos(prev => (prev < 90 ? prev + 0.1 : 30));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [hasTimetable]);
-
-  const mockTasks = [
-    { id: 1, title: 'Wake Up & Meditation', startTime: '05:00 AM', endTime: '05:45 AM', duration: '45m', priority: 'low', status: 'completed', icon: 'sun' },
-    { id: 2, title: 'Gym & Fitness', startTime: '06:00 AM', endTime: '07:00 AM', duration: '60m', priority: 'high', status: 'completed', icon: 'dumbbell' },
-    { id: 3, title: 'College', startTime: '08:00 AM', endTime: '02:00 PM', duration: '6h', priority: 'high', status: 'live', icon: 'graduation', notes: 'Lectures, Notes, Learn' },
-    { id: 4, title: 'Deep Work on DSA', startTime: '02:30 PM', endTime: '05:15 PM', duration: '2h 45m', priority: 'high', status: 'upcoming', icon: 'code' },
-    { id: 5, title: 'Break / Snack', startTime: '05:15 PM', endTime: '05:35 PM', duration: '20m', priority: 'break', status: 'upcoming', icon: 'coffee' },
-    { id: 6, title: 'Project Work', startTime: '05:35 PM', endTime: '07:30 PM', duration: '1h 55m', priority: 'medium', status: 'upcoming', icon: 'folder' },
-    { id: 7, title: 'Aptitude Practice', startTime: '07:30 PM', endTime: '09:00 PM', duration: '1h 30m', priority: 'medium', status: 'upcoming', icon: 'brain' },
-    { id: 8, title: 'Wind Down / Reading', startTime: '09:00 PM', endTime: '10:30 PM', duration: '1h 30m', priority: 'medium', status: 'upcoming', icon: 'moon' },
-    { id: 9, title: 'Sleep', startTime: '10:30 PM', endTime: '05:00 AM', duration: '6h 30m', priority: 'low', status: 'upcoming', icon: 'sleep' },
-  ];
+  const timeLabel = currentTime ? currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
 
   if (!hasTimetable) {
     return (
@@ -145,7 +152,7 @@ export default function Timeline({ hasTimetable, setHasTimetable }) {
           
           {/* Time Label on the Line */}
           <div className="absolute right-8 text-[10px] font-bold text-cyan-400 tracking-widest whitespace-nowrap bg-[#060606] px-2 py-0.5 rounded border border-cyan-500/30">
-            10:24 AM
+            {timeLabel}
           </div>
         </div>
       </div>
@@ -157,23 +164,34 @@ export default function Timeline({ hasTimetable, setHasTimetable }) {
         </div>
         <div>
           <h5 className="text-[11px] font-medium text-slate-300 tracking-wider">Start Your Day</h5>
-          <p className="text-[10px] text-slate-500 font-medium">05:00 AM</p>
+          <p className="text-[10px] text-slate-500 font-medium">04:00 AM</p>
         </div>
       </div>
 
       {/* Tasks Container */}
       <div className="w-full pl-[140px] pr-8 flex flex-col gap-6 mt-16 relative z-20">
-        {mockTasks.map((task, idx) => (
-          <div key={task.id} className="relative group">
-            {/* Connection Node to main line */}
-            <div className="absolute -left-[60px] top-1/2 -translate-y-1/2 flex items-center w-[60px]">
-              <div className={`w-2.5 h-2.5 rounded-full border-2 bg-[#060606] z-10 transition-colors duration-500 ${task.status === 'completed' || task.status === 'live' ? 'border-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]' : 'border-slate-700'}`}></div>
-              <div className={`h-[1px] w-full transition-colors duration-500 ${task.status === 'completed' || task.status === 'live' ? 'bg-cyan-400/30' : 'bg-slate-800'}`}></div>
+        {tasks.map((task) => {
+          const isLive = currentTask && currentTask.id === task.id;
+          const status = task.completed ? 'completed' : (isLive ? 'live' : 'upcoming');
+          
+          return (
+            <div key={task.id} className="relative group">
+              {/* Connection Node to main line */}
+              <div className="absolute -left-[60px] top-1/2 -translate-y-1/2 flex items-center w-[60px]">
+                <div className={`w-2.5 h-2.5 rounded-full border-2 bg-[#060606] z-10 transition-colors duration-500 ${status === 'completed' || status === 'live' ? 'border-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]' : 'border-slate-700'}`}></div>
+                <div className={`h-[1px] w-full transition-colors duration-500 ${status === 'completed' || status === 'live' ? 'bg-cyan-400/30' : 'bg-slate-800'}`}></div>
+              </div>
+              
+              <TaskCard 
+                task={task} 
+                isLive={isLive} 
+                currentTime={currentTime} 
+                actions={actions}
+                openModal={openModal}
+              />
             </div>
-            
-            <TaskCard task={task} isLive={task.status === 'live'} />
-          </div>
-        ))}
+          );
+        })}
       </div>
       
       {/* End Day Marker */}

@@ -21,7 +21,7 @@ ChartJS.register(
   Filler
 );
 
-export default function LeftPanels({ hasTimetable, onAddTimetable }) {
+export default function LeftPanels({ hasTimetable, onAddTimetable, focusPulse, tasks = [] }) {
   // Mock Calendar
   const renderCalendar = () => {
     const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -60,15 +60,18 @@ export default function LeftPanels({ hasTimetable, onAddTimetable }) {
     );
   };
 
-  // Mock Focus Pulse Graph
   const renderFocusPulse = () => {
+    // Generate an array that trends towards the current focusPulse
+    const fp = focusPulse || 0;
+    const mockTrend = [Math.max(0, fp - 20), Math.max(0, fp - 10), Math.max(0, fp - 15), Math.max(0, fp - 5), Math.min(100, fp + 5), Math.max(0, fp - 2), fp];
+
     const data = {
       labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
       datasets: [
         {
           fill: true,
           label: 'Focus Pulse',
-          data: [40, 60, 45, 80, 55, 92, 85],
+          data: mockTrend,
           borderColor: '#22d3ee', // Cyan 400
           backgroundColor: (context) => {
             const ctx = context.chart.ctx;
@@ -116,10 +119,10 @@ export default function LeftPanels({ hasTimetable, onAddTimetable }) {
         <div className='absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none'></div>
         <h3 className='text-[10px] font-bold tracking-widest text-slate-400 mb-1'>FOCUS PULSE</h3>
         <div className='flex items-baseline gap-2 mb-4'>
-          <span className='text-4xl font-light text-white'>{hasTimetable ? '92' : '--'}</span>
+          <span className='text-4xl font-light text-white'>{hasTimetable ? fp : '--'}</span>
           <span className='text-cyan-400 text-sm'>%</span>
         </div>
-        <p className='text-xs text-slate-500 mb-4'>{hasTimetable ? 'Right on track' : 'No data available'}</p>
+        <p className='text-xs text-slate-500 mb-4'>{hasTimetable ? (fp > 75 ? 'Right on track' : 'Needs attention') : 'No data available'}</p>
         <div className='h-[80px] w-full'>
           <Line data={data} options={options} />
         </div>
@@ -128,22 +131,38 @@ export default function LeftPanels({ hasTimetable, onAddTimetable }) {
   };
 
   const renderTodaysMission = () => {
+    // Top 3 highest priority tasks
+    const priorityWeights = { high: 3, medium: 2, low: 1, break: 0 };
+    const missionTasks = [...tasks]
+      .filter(t => t.priority !== 'break')
+      .sort((a, b) => priorityWeights[b.priority] - priorityWeights[a.priority])
+      .slice(0, 3);
+      
+    const completedMissions = missionTasks.filter(t => t.completed).length;
+    const missionProgress = missionTasks.length > 0 ? Math.round((completedMissions / missionTasks.length) * 100) : 0;
+    const strokeDashoffset = 100 - missionProgress;
+
     return (
       <div className='p-5 bg-white/[0.02] border border-white/[0.05] rounded-2xl backdrop-blur-md mb-6'>
         <h3 className='text-[10px] font-bold tracking-widest text-slate-400 mb-4'>TODAY'S MISSION</h3>
-        {hasTimetable ? (
+        {hasTimetable && missionTasks.length > 0 ? (
           <>
-            <p className='text-xs text-slate-300 mb-6 leading-relaxed'>
-              Complete deep work blocks and stay consistent.
-            </p>
+            <ul className='flex flex-col gap-2 mb-6'>
+              {missionTasks.map(t => (
+                <li key={t.id} className='text-xs flex items-center gap-2'>
+                  <div className={`w-1.5 h-1.5 rounded-full ${t.completed ? 'bg-cyan-400 shadow-[0_0_5px_#22d3ee]' : 'bg-slate-600'}`}></div>
+                  <span className={`${t.completed ? 'text-slate-500 line-through' : 'text-slate-300'}`}>{t.title}</span>
+                </li>
+              ))}
+            </ul>
             <div className='flex items-center gap-3'>
               <div className='w-10 h-10 rounded-full border-2 border-cyan-500/30 flex items-center justify-center relative'>
-                {/* SVG Circle Progress Mock */}
+                {/* SVG Circle Progress */}
                 <svg className="absolute inset-0 w-full h-full -rotate-90">
                   <circle cx="18" cy="18" r="16" stroke="currentColor" strokeWidth="2" fill="transparent" className="text-white/5" />
-                  <circle cx="18" cy="18" r="16" stroke="currentColor" strokeWidth="2" fill="transparent" strokeDasharray="100" strokeDashoffset="22" className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
+                  <circle cx="18" cy="18" r="16" stroke="currentColor" strokeWidth="2" fill="transparent" strokeDasharray="100" strokeDashoffset={strokeDashoffset} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] transition-all duration-500" />
                 </svg>
-                <span className='text-[10px] font-bold text-white relative z-10'>78%</span>
+                <span className='text-[10px] font-bold text-white relative z-10'>{missionProgress}%</span>
               </div>
               <span className='text-xs text-slate-400 font-medium tracking-wide'>Mission Progress</span>
             </div>
