@@ -11,6 +11,7 @@ import ProgressTracker from './pages/ProgressTracker'
 import Reminder from './pages/Reminder'
 import Todo from './pages/Todo'
 import Agent from './pages/Agent'
+import Timetable from './pages/Timetable'
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
           <Routes>
             <Route path='/home' element={<Welcome />} />
             <Route path='/' element={<Dashboard />} />
+            <Route path='/timetable' element={<Timetable />} />
             <Route path='/habits' element={<HabitSection />} />
             <Route path='/activity' element={<ActivitySection />} />
             <Route path='/progress' element={<ProgressTracker />} />
