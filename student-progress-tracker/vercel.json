@@ -1,27 +1,5 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite",
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow"
-        }
-      ]
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/",
-      "headers": {
-        "WWW-Authenticate": "Basic realm=\"Protected Site\"",
-        "Authorization": "Basic TGVvOkthYmlsYW4yOTI4MDM="
-      },
-      "continue": true
-    }
-  ]
+  "framework": "vite"
 }
