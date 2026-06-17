@@ -32,7 +32,7 @@ export default function Sidebar() {
 
   return (
     <aside className='h-screen w-[88px] flex-shrink-0 flex flex-col items-center py-10 z-50 bg-[#060606]/80 backdrop-blur-2xl border-r border-white/[0.04]'>
-      
+
       {/* Brand - Abstract Monolith */}
       <div className='mb-16 group relative cursor-pointer'>
         <div className='w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all duration-500 group-hover:scale-110 group-hover:shadow-[0_0_40px_rgba(6,182,212,0.5)]'></div>
@@ -48,10 +48,9 @@ export default function Sidebar() {
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
-                `relative flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-500 group ${
-                  isActive 
-                    ? `bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.05] shadow-inner ${isTimetable ? 'text-cyan-400' : 'text-emerald-400'}`
-                    : 'text-slate-500 hover:text-white hover:bg-white/[0.03]'
+                `relative flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-500 group ${isActive
+                  ? `bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.05] shadow-inner ${isTimetable ? 'text-cyan-400' : 'text-emerald-400'}`
+                  : 'text-slate-500 hover:text-white hover:bg-white/[0.03]'
                 }`
               }
             >
@@ -71,12 +70,12 @@ export default function Sidebar() {
                   >
                     <Icon />
                   </svg>
-                  
+
                   {/* Subtle Indicator Line for Active State */}
                   {isActive && (
                     <div className={`absolute left-[-22px] w-[3px] h-6 rounded-r-full shadow-[0_0_15px_rgba(16,185,129,1)] transition-all duration-300 ${isTimetable ? 'bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,1)]' : 'bg-emerald-500'}`}></div>
                   )}
-                  
+
                   {/* Hover Tooltip - Floating Glass */}
                   <div className='absolute left-16 pl-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0 pointer-events-none z-50'>
                     <div className='px-3 py-1.5 bg-[#121212]/90 backdrop-blur-md border border-white/10 rounded-lg shadow-xl'>
@@ -89,12 +88,12 @@ export default function Sidebar() {
           );
         })}
       </nav>
-      
+
       {/* Profile - Minimalist */}
       <div className='mt-auto mb-4 cursor-pointer group'>
-         <div className='w-10 h-10 rounded-full bg-surface-highlight border border-white/5 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:text-white group-hover:border-white/20 transition-all duration-300 shadow-lg'>
-             LEO
-         </div>
+        <div className='w-10 h-10 rounded-full bg-surface-highlight border border-white/5 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:text-white group-hover:border-white/20 transition-all duration-300 shadow-lg'>
+          LEO
+        </div>
       </div>
     </aside>
   );
